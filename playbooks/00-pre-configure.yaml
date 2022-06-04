@@ -1,0 +1,59 @@
+---
+- name: Preconfigure tasks
+  hosts: all
+  gather_facts: false
+  run_once: true
+  tasks:
+
+    - name: Reassing cluster_name
+      ansible.builtin.set_fact:
+        cluster_name: "{{ access_urls.Control }}"
+
+    - name: Reassing inventory_dir
+      ansible.builtin.set_fact:
+        inventory_dir: custom-inventory
+
+    - name: Prepare certificates
+      delegate_to: localhost
+      block:
+
+        - name: Create .secrets dir if not exists
+          ansible.builtin.file:
+            path: ../.secrets
+            state: directory
+            mode: 0700
+
+        - name: Check if certificate exists
+          ansible.builtin.stat:
+            path: ../.secrets/tls.crt
+          register: cert_file
+          failed_when: not cert_file.stat.exists
+          ignore_errors: true
+
+        - name: Check if private key exists
+          ansible.builtin.stat:
+            path: ../.secrets/tls.key
+          register: key_file
+          failed_when: not key_file.stat.exists
+          ignore_errors: true
+
+        - name: Link certificates
+          ansible.builtin.file:
+            src: tls.crt
+            dest: "../.secrets/{{ item }}.cert.pem"
+            state: link
+          loop:
+            - "{{ access_urls.Dashboard }}"
+            - "{{ access_urls.Grafana }}"
+          when: cert_file.stat.exists and key_file.stat.exists
+
+
+        - name: Link certificate keys
+          ansible.builtin.file:
+            src: tls.key
+            dest: "../.secrets/{{ item }}.key.pem"
+            state: link
+          loop:
+            - "{{ access_urls.Dashboard }}"
+            - "{{ access_urls.Grafana }}"
+          when: cert_file.stat.exists and key_file.stat.exists

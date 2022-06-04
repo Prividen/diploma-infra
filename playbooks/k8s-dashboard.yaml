@@ -1,0 +1,130 @@
+---
+- name: Install and configure Dashboard
+  hosts: all
+  become: false
+  vars:
+    dashboard_namespace: kubernetes-dashboard
+    dashboard_hostname: "{{ access_urls.Dashboard }}"
+    dashboard_certfile: "../.secrets/{{ dashboard_hostname }}.cert.pem"
+    dashboard_keyfile: "../.secrets/{{ dashboard_hostname }}.key.pem"
+    dashboard_cert: "{{ lookup('file', dashboard_certfile, errors='warn') | default() }}"
+    dashboard_key: "{{ lookup('file', dashboard_keyfile, errors='warn') | default() }}"
+
+    dashboard_service_account:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: admin-user
+
+    dashboard_service_account_role_binding:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: admin-user
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+        - kind: ServiceAccount
+          name: admin-user
+          namespace: "{{ dashboard_namespace }}"
+
+    dashboard_tls_secret_resource:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: dashboard-certs
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ dashboard_cert | b64encode }}"
+        tls.key: "{{ dashboard_key | b64encode }}"
+
+    dashboard_ingress_resource:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: kubernetes-dashboard
+        annotations:
+          nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      spec:
+        tls:
+          - hosts:
+              - "{{ dashboard_hostname }}"
+            secretName: dashboard-certs
+        rules:
+          - host: "{{ dashboard_hostname }}"
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: kubernetes-dashboard
+                      port:
+                        number: 443
+
+  tasks:
+    - name: Install and configure Dashboard
+      delegate_to: localhost
+      run_once: true
+      block:
+
+        - name: Add dashboard repo
+          kubernetes.core.helm_repository:
+            name: kubernetes-dashboard
+            repo_url: "https://kubernetes.github.io/dashboard/"
+          tags:
+            - helm
+            - dashboard
+
+        - name: Install Kubernetes Dashboard
+          kubernetes.core.helm:
+            release_name: kubernetes-dashboard
+            release_namespace: kubernetes-dashboard
+            create_namespace: true
+            chart_ref: kubernetes-dashboard/kubernetes-dashboard
+            update_repo_cache: true
+          tags:
+            - helm
+            - dashboard
+
+        - name: Create dashboard custom objects
+          kubernetes.core.k8s:
+            state: present
+            namespace: "{{ dashboard_namespace }}"
+            definition: "{{ item }}"
+          loop:
+            - "{{ dashboard_tls_secret_resource }}"
+            - "{{ dashboard_ingress_resource }}"
+            - "{{ dashboard_service_account }}"
+            - "{{ dashboard_service_account_role_binding }}"
+          loop_control:
+            label: " {{ item.kind }} / {{ item.metadata.name }}"
+
+        - name: Get dashboard SA token name
+          kubernetes.core.k8s_info:
+            api_version: v1
+            kind: ServiceAccount
+            name: admin-user
+            namespace: "{{ dashboard_namespace }}"
+          register: dashboard_sa
+
+        - name: Get dashboard SA token data
+          kubernetes.core.k8s_info:
+            api_version: v1
+            kind: Secret
+            name: "{{ dashboard_sa.resources[0].secrets[0].name }}"
+            namespace: "{{ dashboard_namespace }}"
+          register: dashboard_token
+
+        - name: Show access info
+          ansible.builtin.debug:
+            msg:
+              - "Dashboard URL: https://{{ dashboard_hostname }}"
+              - "Auth token: {{ dashboard_token.resources[0].data.token | b64decode }}"
+          tags: credentials
+
+      environment:
+        KUBECONFIG: "../admin-{{ cluster_name }}.conf"
+      tags: dashboard

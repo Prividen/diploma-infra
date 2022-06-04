@@ -1,0 +1,97 @@
+---
+# Require: jb, jsonnet
+- name: Deploy kube-prometheus
+  hosts: all
+  become: false
+  vars:
+    kube_prometheus_url: "github.com/prometheus-operator/kube-prometheus/jsonnet/kube-prometheus@main"
+    kp_namespace: monitoring
+    grafana_hostname: "{{ access_urls.Grafana }}"
+    grafana_certfile: "../.secrets/{{ grafana_hostname }}.cert.pem"
+    grafana_keyfile: "../.secrets/{{ grafana_hostname }}.key.pem"
+    grafana_cert: "{{ lookup('file', grafana_certfile, errors='warn') | default() }}"
+    grafana_key: "{{ lookup('file', grafana_keyfile, errors='warn') | default() }}"
+    grafana_tls_secret_resource:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: grafana-certs
+        namespace: "{{ kp_namespace }}"
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ grafana_cert | b64encode }}"
+        tls.key: "{{ grafana_key | b64encode }}"
+
+  tasks:
+    - name: Deploy kube-prometheus
+      delegate_to: localhost
+      run_once: true
+      block:
+
+        - name: Cleanup
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - ../kube-prometheus/manifests
+            - ../kube-prometheus/vendor
+            - ../kube-prometheus/jsonnetfile.json
+            - ../kube-prometheus/jsonnetfile.lock.json
+          failed_when: false
+
+        - name: Create directories for manifests
+          ansible.builtin.file:
+            path: "../kube-prometheus/{{ item }}"
+            state: directory
+            mode: 0755
+          loop:
+            - manifests
+            - manifests/setup
+
+        - name: Initialize build environment
+          ansible.builtin.shell: "jb init && jb install {{ kube_prometheus_url }}"
+          args:
+            chdir: ../kube-prometheus
+          changed_when: true
+
+        - name: Build manifests, please wait
+          ansible.builtin.shell: "jsonnet -J vendor -m manifests custom-setup.jsonnet |xargs -I {}  mv {} {}.json"
+          args:
+            chdir: ../kube-prometheus
+          tags:
+            - build-manifests
+          changed_when: true
+
+        - name: Create a Secret object with Grafana certs
+          ansible.builtin.copy:
+            dest: "../kube-prometheus/manifests/grafana-secret.json"
+            content: "{{ grafana_tls_secret_resource | to_json }}"
+            mode: 0600
+          tags:
+            - build-manifests
+
+        - name: Apply (server-side) setup manifests
+          kubernetes.core.k8s:
+            src: "{{ item }}"
+            apply: true
+            server_side_apply:
+              field_manager: ansible
+          loop: "{{ lookup('fileglob', '../kube-prometheus/manifests/setup/*', wantlist=True) | sort }}"
+          loop_control:
+            label: "Manifest: setup/{{ item |basename }}"
+          tags:
+            - apply-manifests
+
+        - name: Apply component manifests
+          kubernetes.core.k8s:
+            src: "{{ item }}"
+            state: present
+          loop: "{{ lookup('fileglob', '../kube-prometheus/manifests/*', wantlist=True) | sort }}"
+          loop_control:
+            label: "Manifest: {{ item |basename }}"
+          tags:
+            - apply-manifests
+
+      environment:
+        KUBECONFIG: "../admin-{{ cluster_name }}.conf"
+      tags: kube-prometheus

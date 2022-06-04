@@ -1,0 +1,6 @@
+- import_playbook: playbooks/00-pre-configure.yaml
+#- import_playbook: kubespray/cluster.yml
+- import_playbook: playbooks/import-cluster-config.yaml
+- import_playbook: playbooks/k8s-dashboard.yaml
+- import_playbook: playbooks/kube-prometheus.yaml
+# - import_playbook: playbooks/testapp.yaml

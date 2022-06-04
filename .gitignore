@@ -1,0 +1,4 @@
+.*/
+terraform-agent.json
+admin-*.conf
+kubespray

@@ -1,0 +1,10 @@
+---
+- name: test
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for hosts up
+      ansible.builtin.wait_for_connection:
+
+    - name: ping
+      ansible.builtin.ping:

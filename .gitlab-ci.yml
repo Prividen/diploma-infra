@@ -1,0 +1,145 @@
+variables:
+  RUN_TERRAFORM: 0
+  RUN_ANSIBLE: 0
+  RUN_TESTS: 0
+  RUN_DEPLOY: 0
+  BUILD_IMG: 0
+  NO_LINT: 0
+  NO_TERRAFORM: 0
+  NO_ANSIBLE: 0
+  KUBESPRAY_REPO: https://github.com/kubernetes-sigs/kubespray.git
+  KUBESPAY_TAG: v2.19.0
+  INFRA_CNT_IMAGE: "$CI_REGISTRY_IMAGE/infra-container"
+  ANSIBLE_FORCE_COLOR: 1
+
+stages:
+  - build-image
+  - lint
+  - terraform-plan
+  - terraform-apply
+  - ansible-test
+  - ansible-deploy
+
+
+build-infra-image:
+  image: docker:stable
+  stage: build-image
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - cd infra-container
+    - docker build --pull -t $INFRA_CNT_IMAGE ./
+    - docker push $INFRA_CNT_IMAGE
+  rules:
+    - changes:
+        - infra-container/*
+    - if: $BUILD_IMG == "1"
+    - if: $RUN_TESTS == "1" || $RUN_DEPLOY == "1" || $RUN_TERRAFORM == "1" || $RUN_ANSIBLE == "1"
+      when: never
+    - when: never
+
+
+lint-configs:
+  image: $INFRA_CNT_IMAGE
+  stage: lint
+  before_script:
+    - . /prepare_env.sh
+  script:
+    - terraform init
+    - terraform validate
+    - ansible-lint playbooks/
+  rules:
+    - if: $NO_LINT == "1"
+      when: never
+    - if: $RUN_TESTS == "1"
+    - when: never
+
+terraform-plan:
+  image: $INFRA_CNT_IMAGE
+  stage: terraform-plan
+  before_script:
+    - . /prepare_env.sh
+  script:
+    - terraform init
+    - terraform plan
+  rules:
+    - if: $NO_TERRAFORM == "1"
+      when: never
+    - if: $RUN_TERRAFORM == "1"
+    - if: $RUN_TESTS == "1"
+    - when: never
+
+
+terraform-apply:
+  image: $INFRA_CNT_IMAGE
+  stage: terraform-apply
+  before_script:
+    - . /prepare_env.sh
+  script:
+    - terraform init
+    - terraform apply -auto-approve
+  after_script:
+    - terraform show -json > terraform_state.json
+  artifacts:
+    paths:
+      - terraform_state.json
+  rules:
+    - if: $NO_TERRAFORM == "1"
+      when: never
+    - if: $RUN_TERRAFORM == "1"
+    - if: $RUN_DEPLOY == "1"
+    - when: never
+
+
+ansible-test:
+  image: $INFRA_CNT_IMAGE
+  stage: ansible-test
+  variables:
+    TF_HOSTNAME_KEY_NAME: name
+    TF_STATE: ./terraform_state.json
+  before_script:
+    - . /prepare_env.sh
+  script:
+    - "[ -e terraform_state.json ] || (terraform init && terraform show -json > terraform_state.json)"
+    - ansible-playbook -b -i custom-inventory/ -i /usr/local/bin/terraform-inventory playbooks/ping.yaml
+  dependencies:
+    - terraform-apply
+  rules:
+    - if: $NO_ANSIBLE == "1"
+      when: never
+    - if: $RUN_ANSIBLE == "1"
+    - if: $RUN_TESTS == "1"
+    - when: never
+
+
+
+ansible-deploy:
+  image: $INFRA_CNT_IMAGE
+  stage: ansible-deploy
+  variables:
+    TF_HOSTNAME_KEY_NAME: name
+    TF_STATE: ./terraform_state.json
+  before_script:
+    - . /prepare_env.sh
+    - git clone --depth 1 --branch $KUBESPAY_TAG $KUBESPRAY_REPO
+  script:
+    - "[ -e terraform_state.json ] || (terraform init && terraform show -json > terraform_state.json)"
+    - |
+      if [ "$NO_KUBESPRAY" != "1" ]; then
+        ansible-playbook -b -i kubespray/inventory/sample/ -i custom-inventory/ -i /usr/local/bin/terraform-inventory \
+        playbooks/00-pre-configure.yaml kubespray/cluster.yml
+      fi
+    - ansible-playbook -b -i kubespray/inventory/sample/ -i custom-inventory/ -i /usr/local/bin/terraform-inventory do-deploy.yaml
+  dependencies:
+    - terraform-apply
+  artifacts:
+    paths:
+      - admin-*.conf
+  rules:
+    - if: $NO_ANSIBLE == "1"
+      when: never
+    - if: $RUN_ANSIBLE == "1"
+    - if: $RUN_DEPLOY == "1"
+    - when: never

@@ -1,0 +1,41 @@
+---
+- name: Import cluster config
+  hosts: all
+  become: false
+
+  tasks:
+    - name: Import cluster config
+      block:
+        - name: Get cluster config
+          become: true
+          ansible.builtin.slurp:
+            src: /etc/kubernetes/admin.conf
+          register: cluster_config_raw
+
+        - name: Decode config data
+          ansible.builtin.set_fact:
+            cluster_config: "{{ cluster_config_raw['content'] | b64decode |from_yaml }}"
+
+        - name: Extract cluster credentials...
+          ansible.builtin.set_fact:
+            cluster_url: "{{ cluster_config.clusters[0].cluster.server | replace('127.0.0.1', cluster_name) }}"
+            cluster_ca: "{{ cluster_config.clusters[0].cluster.get('certificate-authority-data') }}"
+
+        - name: Reconstruct local config data
+          ansible.builtin.set_fact:
+            cluster_config: "{{  cluster_config | combine({'clusters':
+                                  [{
+                                    'cluster': {'server': cluster_url, 'certificate-authority-data': cluster_ca},
+                                    'name':cluster_name
+                                  }]})
+                              }}"
+
+        - name: "Save cluster config locally: admin-{{ cluster_name }}.conf"
+          delegate_to: localhost
+          ansible.builtin.copy:
+            content: "{{ cluster_config }}"
+            dest: "../admin-{{ cluster_name }}.conf"
+            mode: 0600
+
+      when: inventory_hostname == groups['kube_control_plane'][0]
+      tags: config
