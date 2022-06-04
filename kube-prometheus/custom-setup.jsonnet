@@ -1,6 +1,6 @@
 local grafana_host = 'grafana.yc.complife.ru';
 local grafana_user = 'netology';
-//local grafana_pass = 'FAKE';
+local grafana_pass = std.extVar('grafana_pass');
 local grafana_home_dashboard = '/grafana-dashboard-definitions/0/nodes/nodes.json';
 
 local kp =

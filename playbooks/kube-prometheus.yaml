@@ -55,7 +55,7 @@
           changed_when: true
 
         - name: Build manifests, please wait
-          ansible.builtin.shell: "jsonnet -J vendor -m manifests custom-setup.jsonnet |xargs -I {}  mv {} {}.json"
+          ansible.builtin.shell: "jsonnet -J vendor -m manifests --ext-str grafana_pass custom-setup.jsonnet |xargs -I {}  mv {} {}.json"
           args:
             chdir: ../kube-prometheus
           tags:
