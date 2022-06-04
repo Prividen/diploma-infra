@@ -37,8 +37,7 @@ RUN cd /tmp &&  \
     rm -rf * && \
     apt-get update && apt-get install -y \
       jq \
-      sudo \
-      vim && \
+      sudo && \
     apt-get clean
 
 RUN   pip install \
