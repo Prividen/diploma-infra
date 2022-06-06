@@ -232,6 +232,10 @@ resource "yandex_container_registry" "diploma-registry" {
   name = "diploma-registry"
 }
 
+resource "yandex_container_repository" "testapp-repository" {
+  name = "${yandex_container_registry.diploma-registry.id}/testapp"
+}
+
 resource "yandex_iam_service_account" "k8s-registry-agent" {
   name      = "k8s-registry-agent"
 }
