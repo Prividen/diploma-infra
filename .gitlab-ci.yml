@@ -3,10 +3,13 @@ variables:
   RUN_ANSIBLE: 0
   RUN_TESTS: 0
   RUN_DEPLOY: 0
+  RUN_TESTAPP: 0
   BUILD_IMG: 0
   NO_LINT: 0
   NO_TERRAFORM: 0
   NO_ANSIBLE: 0
+  NO_KUBESPRAY: 0
+  NO_TESTAPP: 0
   KUBESPRAY_REPO: https://github.com/kubernetes-sigs/kubespray.git
   KUBESPAY_TAG: v2.19.0
   INFRA_CNT_IMAGE: "$CI_REGISTRY_IMAGE/infra-container"
@@ -18,7 +21,8 @@ stages:
   - terraform-plan
   - terraform-apply
   - ansible-test
-  - ansible-deploy
+  - cluster-deploy
+  - testapp-deploy
 
 
 build-infra-image:
@@ -33,11 +37,10 @@ build-infra-image:
     - docker build --pull -t $INFRA_CNT_IMAGE ./
     - docker push $INFRA_CNT_IMAGE
   rules:
-    - changes:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
         - infra-container/*
     - if: $BUILD_IMG == "1"
-    - if: $RUN_TESTS == "1" || $RUN_DEPLOY == "1" || $RUN_TERRAFORM == "1" || $RUN_ANSIBLE == "1"
-      when: never
     - when: never
 
 
@@ -115,9 +118,9 @@ ansible-test:
 
 
 
-ansible-deploy:
+cluster-deploy:
   image: $INFRA_CNT_IMAGE
-  stage: ansible-deploy
+  stage: cluster-deploy
   variables:
     TF_HOSTNAME_KEY_NAME: name
     TF_STATE: ./terraform_state.json
@@ -137,9 +140,25 @@ ansible-deploy:
   artifacts:
     paths:
       - admin-*.conf
+      - infra-info.yaml
   rules:
     - if: $NO_ANSIBLE == "1"
       when: never
     - if: $RUN_ANSIBLE == "1"
+    - if: $RUN_DEPLOY == "1"
+    - when: never
+
+testapp-deploy:
+  stage: testapp-deploy
+  variables:
+    INFRA_PROJECT_PATH: $CI_PROJECT_PATH
+  trigger: $TESTAPP_PROJECT
+  rules:
+    - if: $NO_ANSIBLE == "1"
+      when: never
+    - if: $NO_TESTAPP == "1"
+      when: never
+    - if: $RUN_ANSIBLE == "1"
+    - if: $RUN_TESTAPP == "1"
     - if: $RUN_DEPLOY == "1"
     - when: never

@@ -3,4 +3,4 @@
 - import_playbook: playbooks/import-cluster-config.yaml
 - import_playbook: playbooks/k8s-dashboard.yaml
 - import_playbook: playbooks/kube-prometheus.yaml
-# - import_playbook: playbooks/testapp.yaml
+- import_playbook: playbooks/save-infra-info.yaml

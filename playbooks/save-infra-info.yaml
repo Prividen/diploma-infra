@@ -1,0 +1,22 @@
+---
+- name: Save infrastructure info
+  hosts: all
+  gather_facts: false
+  become: false
+  run_once: true
+  vars:
+    infra_info:
+      cluster_name: "{{ cluster_name }}"
+      container_registry: "{{ container_registry }}"
+      picture_url: "{{ picture_url }}"
+      deploy_env: "{{ deploy_env }}"
+      docker_registry_agent_key: "{{ docker_registry_agent_key | b64encode }}"
+      k8s_registry_agent_key: "{{ k8s_registry_agent_key | b64encode }}"
+
+  tasks:
+    - name: Save infrastructure info
+      delegate_to: localhost
+      ansible.builtin.copy:
+        content: "{{ infra_info | to_nice_yaml }}"
+        dest: "../infra-info.yaml"
+        mode: 0600
