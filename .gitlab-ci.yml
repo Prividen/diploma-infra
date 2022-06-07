@@ -58,6 +58,7 @@ lint-configs:
       when: never
     - if: $RUN_TESTS == "1"
     - when: never
+  needs: []
 
 terraform-plan:
   image: $INFRA_CNT_IMAGE
@@ -73,7 +74,8 @@ terraform-plan:
     - if: $RUN_TERRAFORM == "1"
     - if: $RUN_TESTS == "1"
     - when: never
-
+  needs:
+    - lint-configs
 
 terraform-apply:
   image: $INFRA_CNT_IMAGE
@@ -94,7 +96,8 @@ terraform-apply:
     - if: $RUN_TERRAFORM == "1"
     - if: $RUN_DEPLOY == "1"
     - when: never
-
+  needs:
+    - terraform-plan
 
 ansible-test:
   image: $INFRA_CNT_IMAGE
@@ -107,15 +110,14 @@ ansible-test:
   script:
     - "[ -e terraform_state.json ] || (terraform init && terraform show -json > terraform_state.json)"
     - ansible-playbook -b -i custom-inventory/ -i /usr/local/bin/terraform-inventory playbooks/ping.yaml
-  dependencies:
-    - terraform-apply
   rules:
     - if: $NO_ANSIBLE == "1"
       when: never
     - if: $RUN_ANSIBLE == "1"
     - if: $RUN_TESTS == "1"
     - when: never
-
+  needs:
+    - terraform-apply
 
 
 cluster-deploy:
@@ -137,8 +139,6 @@ cluster-deploy:
         playbooks/00-pre-configure.yaml kubespray/cluster.yml
       fi
     - ansible-playbook -b -i kubespray/inventory/sample/ -i custom-inventory/ -i /usr/local/bin/terraform-inventory do-deploy.yaml
-  dependencies:
-    - terraform-apply
   cache:
     paths:
       - admin-*.conf
@@ -149,6 +149,13 @@ cluster-deploy:
     - if: $RUN_ANSIBLE == "1"
     - if: $RUN_DEPLOY == "1"
     - when: never
+  needs:
+    -
+    - ansible-test
+    -
+      needs:
+        - cluster-deploy
+
 
 
 save-artifacts:
@@ -164,7 +171,8 @@ save-artifacts:
     paths:
       - admin-*.conf
       - infra-info.yaml
-
+  needs:
+    - cluster-deploy
 
 testapp-deploy:
   stage: testapp-deploy
@@ -180,3 +188,5 @@ testapp-deploy:
     - if: $RUN_TESTAPP == "1"
     - if: $RUN_DEPLOY == "1"
     - when: never
+  needs:
+    - save-artifacts
