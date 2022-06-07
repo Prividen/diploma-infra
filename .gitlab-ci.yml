@@ -74,8 +74,7 @@ terraform-plan:
     - if: $RUN_TERRAFORM == "1"
     - if: $RUN_TESTS == "1"
     - when: never
-  needs:
-    - lint-configs
+
 
 terraform-apply:
   image: $INFRA_CNT_IMAGE
@@ -96,8 +95,7 @@ terraform-apply:
     - if: $RUN_TERRAFORM == "1"
     - if: $RUN_DEPLOY == "1"
     - when: never
-  needs:
-    - terraform-plan
+
 
 ansible-test:
   image: $INFRA_CNT_IMAGE
@@ -116,8 +114,6 @@ ansible-test:
     - if: $RUN_ANSIBLE == "1"
     - if: $RUN_TESTS == "1"
     - when: never
-  needs:
-    - terraform-apply
 
 
 cluster-deploy:
@@ -149,8 +145,7 @@ cluster-deploy:
     - if: $RUN_ANSIBLE == "1"
     - if: $RUN_DEPLOY == "1"
     - when: never
-  needs:
-    - ansible-test
+
 
 save-artifacts:
   image: $INFRA_CNT_IMAGE
@@ -165,8 +160,7 @@ save-artifacts:
     paths:
       - admin-*.conf
       - infra-info.yaml
-  needs:
-    - cluster-deploy
+
 
 testapp-deploy:
   stage: testapp-deploy
