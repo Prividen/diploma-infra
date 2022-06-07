@@ -148,7 +148,6 @@ cluster-deploy:
 
 
 save-artifacts:
-  image: $INFRA_CNT_IMAGE
   stage: testapp-deploy
   script:
     - ls
