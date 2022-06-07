@@ -148,6 +148,7 @@ cluster-deploy:
 
 
 save-artifacts:
+  image: busybox
   stage: testapp-deploy
   script:
     - ls
