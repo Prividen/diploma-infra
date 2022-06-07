@@ -129,6 +129,8 @@ cluster-deploy:
     - git clone --depth 1 --branch $KUBESPAY_TAG $KUBESPRAY_REPO
   script:
     - "[ -e terraform_state.json ] || (terraform init && terraform show -json > terraform_state.json)"
+    - err_ex() { retcode=$?; echo "error-> $*" >&2; [ "$DEBUG" = "1" ] && (echo "wait for debug";sleep 1h||true); exit $retcode; }
+    - trap "err_ex" ERR
     - |
       if [ "$NO_KUBESPRAY" != "1" ]; then
         ansible-playbook -b -i kubespray/inventory/sample/ -i custom-inventory/ -i /usr/local/bin/terraform-inventory \
@@ -137,7 +139,7 @@ cluster-deploy:
     - ansible-playbook -b -i kubespray/inventory/sample/ -i custom-inventory/ -i /usr/local/bin/terraform-inventory do-deploy.yaml
   dependencies:
     - terraform-apply
-  artifacts:
+  cache:
     paths:
       - admin-*.conf
       - infra-info.yaml
@@ -148,11 +150,27 @@ cluster-deploy:
     - if: $RUN_DEPLOY == "1"
     - when: never
 
+
+save-artifacts:
+  image: $INFRA_CNT_IMAGE
+  stage: cluster-deploy
+  script:
+    - ls
+  cache:
+    paths:
+      - admin-*.conf
+      - infra-info.yaml
+  artifacts:
+    paths:
+      - admin-*.conf
+      - infra-info.yaml
+
+
 testapp-deploy:
   stage: testapp-deploy
   variables:
     INFRA_PROJECT_PATH: $CI_PROJECT_PATH
-  trigger: $TESTAPP_PROJECT
+  trigger: netology-diploma/testapp
   rules:
     - if: $NO_ANSIBLE == "1"
       when: never

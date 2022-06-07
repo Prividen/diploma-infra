@@ -62,7 +62,7 @@ locals {
       masters = {
         count       = 1
         cpu         = 4
-        memory      = 6
+        memory      = 4
         disk        = 93
         disk_type   = "network-ssd-nonreplicated"
         preemptible = false
@@ -234,6 +234,7 @@ resource "yandex_container_registry" "diploma-registry" {
 
 resource "yandex_container_repository" "testapp-repository" {
   name = "${yandex_container_registry.diploma-registry.id}/testapp"
+  depends_on = [yandex_container_registry.diploma-registry]
 }
 
 resource "yandex_iam_service_account" "k8s-registry-agent" {

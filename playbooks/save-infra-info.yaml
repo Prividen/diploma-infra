@@ -10,8 +10,8 @@
       container_registry: "{{ container_registry }}"
       picture_url: "{{ picture_url }}"
       deploy_env: "{{ deploy_env }}"
-      docker_registry_agent_key: "{{ docker_registry_agent_key | b64encode }}"
-      k8s_registry_agent_key: "{{ k8s_registry_agent_key | b64encode }}"
+      docker_registry_agent_key: "{{ docker_registry_agent_key | to_json | b64encode }}"
+      k8s_registry_agent_key: "{{ k8s_registry_agent_key | to_json | b64encode }}"
 
   tasks:
     - name: Save infrastructure info
