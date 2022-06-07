@@ -315,6 +315,6 @@ resource "yandex_storage_object"  "cat" {
   bucket = yandex_storage_bucket.netology-diploma.bucket
   key = "cat.jpg"
   content_type = "image/jpeg"
-  source = "testapp/cat.jpg"
+  source = "cat.jpg"
   acl = "public-read"
 }
