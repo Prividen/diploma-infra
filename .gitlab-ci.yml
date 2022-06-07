@@ -150,13 +150,7 @@ cluster-deploy:
     - if: $RUN_DEPLOY == "1"
     - when: never
   needs:
-    -
     - ansible-test
-    -
-      needs:
-        - cluster-deploy
-
-
 
 save-artifacts:
   image: $INFRA_CNT_IMAGE
