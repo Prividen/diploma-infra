@@ -2,6 +2,7 @@
 - name: Install and configure Dashboard
   hosts: all
   become: false
+  gather_facts: false
   vars:
     dashboard_namespace: kubernetes-dashboard
     dashboard_hostname: "{{ access_urls.Dashboard }}"
@@ -109,6 +110,7 @@
             name: admin-user
             namespace: "{{ dashboard_namespace }}"
           register: dashboard_sa
+          tags: credentials
 
         - name: Get dashboard SA token data
           kubernetes.core.k8s_info:
@@ -117,12 +119,17 @@
             name: "{{ dashboard_sa.resources[0].secrets[0].name }}"
             namespace: "{{ dashboard_namespace }}"
           register: dashboard_token
+          tags: credentials
 
-        - name: Show access info
-          ansible.builtin.debug:
-            msg:
-              - "Dashboard URL: https://{{ dashboard_hostname }}"
-              - "Auth token: {{ dashboard_token.resources[0].data.token | b64decode }}"
+        - name: Save dashboard access info
+          vars:
+            dashboard_access_yaml:
+              dashboard_url: "https://{{ dashboard_hostname }}"
+              access_token: "{{ dashboard_token.resources[0].data.token | b64decode }}"
+          ansible.builtin.copy:
+            content: "{{ dashboard_access_yaml | to_nice_yaml }}"
+            dest: ../.secrets/dashboard_access.yaml
+            mode: 0600
           tags: credentials
 
       environment:
