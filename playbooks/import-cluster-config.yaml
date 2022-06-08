@@ -34,7 +34,7 @@
           delegate_to: localhost
           ansible.builtin.copy:
             content: "{{ cluster_config }}"
-            #TODO: fix path to .secrets
+            # TODO: fix path to .secrets
             dest: "../admin-{{ cluster_name }}.conf"
             mode: 0600
 

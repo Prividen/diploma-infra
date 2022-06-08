@@ -18,6 +18,6 @@
       delegate_to: localhost
       ansible.builtin.copy:
         content: "{{ infra_info | to_nice_yaml }}"
-        #TODO: fix path to .secrets
+        # TODO: fix path to .secrets
         dest: "../infra-info.yaml"
         mode: 0600
