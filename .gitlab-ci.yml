@@ -139,7 +139,7 @@ cluster-deploy:
     paths:
       - admin-*.conf
       - infra-info.yaml
-      - .secrets/dashboard_access.yaml
+      - dashboard_access.yaml
   rules:
     - if: $NO_ANSIBLE == "1"
       when: never
@@ -157,12 +157,12 @@ save-artifacts:
     paths:
       - admin-*.conf
       - infra-info.yaml
-      - .secrets/dashboard_access.yaml
+      - dashboard_access.yaml
   artifacts:
     paths:
       - admin-*.conf
       - infra-info.yaml
-      - .secrets/dashboard_access.yaml
+      - dashboard_access.yaml
 
 
 testapp-deploy:

@@ -128,7 +128,7 @@
               access_token: "{{ dashboard_token.resources[0].data.token | b64decode }}"
           ansible.builtin.copy:
             content: "{{ dashboard_access_yaml | to_nice_yaml }}"
-            dest: ../.secrets/dashboard_access.yaml
+            dest: ../dashboard_access.yaml
             mode: 0600
           tags: credentials
 
