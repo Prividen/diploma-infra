@@ -40,3 +40,11 @@ Certificate for TLS access to addons provides in `tls_crt` and `tls_priv` CI/CD 
 Dashboard access info stored in yaml file which available as artifact after pipeline run.
 
 Predefined Grafana password provided in `grafana_pass` CI/CD variable.
+
+
+# CI/CD
+All tests/deploy operations running in a special container with all necessary tools and utilities installed, 
+its image build from [infra-container](infra-container) folder content.
+
+Final job saves some artifacts (cluster access config, infrastructure description) for further testapp CI/CD, and 
+triggers its pipeline upon success cluster deployment. 
