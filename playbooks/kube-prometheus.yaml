@@ -11,6 +11,7 @@
     grafana_keyfile: "../.secrets/{{ grafana_hostname }}.key.pem"
     grafana_cert: "{{ lookup('file', grafana_certfile, errors='warn') | default() }}"
     grafana_key: "{{ lookup('file', grafana_keyfile, errors='warn') | default() }}"
+    # TLS secret with certificate
     grafana_tls_secret_resource:
       apiVersion: v1
       kind: Secret

@@ -5,6 +5,7 @@
   become: false
   run_once: true
   vars:
+    # we pass this info for testapp deployment
     infra_info:
       cluster_name: "{{ cluster_name }}"
       container_registry: "{{ container_registry }}"

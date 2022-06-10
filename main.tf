@@ -4,11 +4,13 @@ provider "yandex" {
   zone                     = local.default_zone
 }
 
+# set by TFC only
 variable "TFC_WORKSPACE_NAME" {
   type    = string
   default = ""
 }
 
+# take workspace name without prefix
 locals {
   ws = var.TFC_WORKSPACE_NAME != "" ? (
     trimprefix(var.TFC_WORKSPACE_NAME, "yc-")
@@ -36,7 +38,7 @@ locals {
   default_zone = local.networks.0.zone_name
   dns_zone     = "yc.complife.ru"
   cluster_name = "kube-cluster"
-  contol_url   = "${local.cluster_name}.${local.dns_zone}"
+  control_url   = "${local.cluster_name}.${local.dns_zone}"
   ingress_url   = "${local.cluster_name}-ingress.${local.dns_zone}"
 
   k8s_cluster_resources = {
@@ -85,6 +87,7 @@ data "yandex_compute_image" "alma8" {
   family = "almalinux-8"
 }
 
+# Network resources
 resource "yandex_vpc_network" "vpc-diploma" {
   name = "vpc-diploma"
 }
@@ -97,7 +100,7 @@ resource "yandex_vpc_subnet" "public" {
   name           = "subnet-${local.networks[count.index].zone_name}"
 }
 
-
+# VMs resources
 resource "yandex_compute_instance" "kube_control_plane" {
   count    = local.k8s_cluster_resources[local.ws].masters.count
   name     = "kb-master-${count.index}"
@@ -170,6 +173,8 @@ resource "yandex_compute_instance" "kube_node" {
   }
 }
 
+
+# create DNS zone with names for cluster resources
 resource "yandex_dns_zone" "dns-zone-yc" {
   name   = "dns-zone-yc"
   zone   = "${local.dns_zone}."
@@ -186,6 +191,7 @@ resource "yandex_dns_recordset" "dns-record-kube-cluster-control" {
   depends_on = [yandex_compute_instance.kube_control_plane]
 }
 
+# as we use ingress controller with hostNetwork mode, we assign to ingress name IP of all worker nodes
 resource "yandex_dns_recordset" "dns-record-kube-cluster-ingress" {
   zone_id = yandex_dns_zone.dns-zone-yc.id
   name    = "${local.cluster_name}-ingress"
@@ -195,6 +201,7 @@ resource "yandex_dns_recordset" "dns-record-kube-cluster-ingress" {
   depends_on = [yandex_compute_instance.kube_node]
 }
 
+# following names just CNAME for ingress
 resource "yandex_dns_recordset" "dns-record-kube-cluster-dashboard" {
   zone_id = yandex_dns_zone.dns-zone-yc.id
   name    = "${local.cluster_name}-dashboard"
@@ -228,15 +235,18 @@ resource "yandex_dns_recordset" "dns-record-testapp-stage" {
 }
 
 
+# create private container registry
 resource "yandex_container_registry" "diploma-registry" {
   name = "diploma-registry"
 }
 
+# and repository for testapp (probably, useless)
 resource "yandex_container_repository" "testapp-repository" {
   name = "${yandex_container_registry.diploma-registry.id}/testapp"
   depends_on = [yandex_container_registry.diploma-registry]
 }
 
+# and pusher and puller service accounts with roles for this registry
 resource "yandex_iam_service_account" "k8s-registry-agent" {
   name      = "k8s-registry-agent"
 }

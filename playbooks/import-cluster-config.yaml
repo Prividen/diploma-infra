@@ -6,6 +6,7 @@
   tasks:
     - name: Import cluster config
       block:
+          # import config on the first master node
         - name: Get cluster config
           become: true
           ansible.builtin.slurp:

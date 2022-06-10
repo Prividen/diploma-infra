@@ -25,7 +25,7 @@ output "worker_nodes" {
 
 output "access_urls" {
   value = {
-    Control = "${local.contol_url}"
+    Control = "${local.control_url}"
     Ingress =  "${local.ingress_url}"
     Dashboard = "${local.cluster_name}-dashboard.${local.dns_zone}"
     Grafana = "grafana.${local.dns_zone}"

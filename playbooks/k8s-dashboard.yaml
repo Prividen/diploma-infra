@@ -11,6 +11,7 @@
     dashboard_cert: "{{ lookup('file', dashboard_certfile, errors='warn') | default() }}"
     dashboard_key: "{{ lookup('file', dashboard_keyfile, errors='warn') | default() }}"
 
+    # additional K8s objects definition
     dashboard_service_account:
       apiVersion: v1
       kind: ServiceAccount
@@ -71,6 +72,7 @@
       run_once: true
       block:
 
+          # Install dashboard via helm
         - name: Add dashboard repo
           kubernetes.core.helm_repository:
             name: kubernetes-dashboard
@@ -103,6 +105,7 @@
           loop_control:
             label: " {{ item.kind }} / {{ item.metadata.name }}"
 
+          # we need to know access token
         - name: Get dashboard SA token name
           kubernetes.core.k8s_info:
             api_version: v1
