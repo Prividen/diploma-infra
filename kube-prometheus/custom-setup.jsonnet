@@ -10,15 +10,19 @@ local kp =
       common+: {
         namespace: 'monitoring',
       },
+      # grafana customizations
       grafana+:: {
         config+: {
           sections+: {
+            # grafana access URL
             server+: {
               root_url: 'https://' + grafana_host + '/',
             },
+            # default dashboard
             dashboards+: {
               default_home_dashboard_path: grafana_home_dashboard,
             },
+            # predefined credentials
             security+: {
               admin_user: grafana_user,
               admin_password: grafana_pass,
@@ -27,9 +31,11 @@ local kp =
         },
       },
     },
+    # disable network policy for grafana to access it from external internet
     grafana+: {
         networkPolicy:: {},
     },
+    # ingress for grafana
     ingress+:: {
       grafana: {
           apiVersion: 'networking.k8s.io/v1',
