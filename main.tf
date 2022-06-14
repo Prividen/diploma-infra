@@ -49,7 +49,7 @@ locals {
         memory      = 4
         disk        = 93
         disk_type   = "network-ssd-nonreplicated"
-        preemptible = true
+        preemptible = false
       }
       workers = {
         count       = 3
@@ -57,7 +57,7 @@ locals {
         memory      = 4
         disk        = 20
         disk_type   = "network-ssd"
-        preemptible = true
+        preemptible = false
       }
     }
     prod = {
