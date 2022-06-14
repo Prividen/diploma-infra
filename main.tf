@@ -132,7 +132,7 @@ resource "yandex_compute_instance" "kube_control_plane" {
   }
 
   metadata = {
-    ssh-keys = "cloud-user:${file("~/.ssh/id_ed25519.pub")}"
+    ssh-keys = "cloud-user:${file("~/.ssh/id_ed25519_yandex.pub")}"
   }
 }
 
@@ -169,7 +169,7 @@ resource "yandex_compute_instance" "kube_node" {
   }
 
   metadata = {
-    ssh-keys = "cloud-user:${file("~/.ssh/id_ed25519.pub")}"
+    ssh-keys = "cloud-user:${file("~/.ssh/id_ed25519_yandex.pub")}"
   }
 }
 

@@ -5,6 +5,7 @@ mkdir -p .secrets
 
 if [ -n "$ssh_key_pub" ]; then
   cp "$ssh_key_pub" ~/.ssh/id_ed25519.pub
+  ln -s id_ed25519.pub ~/.ssh/id_ed25519_yandex.pub
 fi
 
 if [ -n "$ssh_key_priv" ]; then
