@@ -321,7 +321,12 @@ resource "yandex_storage_bucket" "netology-diploma" {
 resource "yandex_storage_object"  "cat" {
   access_key = yandex_iam_service_account_static_access_key.storage-agent-static-key.access_key
   secret_key = yandex_iam_service_account_static_access_key.storage-agent-static-key.secret_key
-  depends_on = [yandex_iam_service_account_static_access_key.storage-agent-static-key]
+  depends_on = [
+    yandex_iam_service_account.storage-agent,
+    yandex_iam_service_account_static_access_key.storage-agent-static-key,
+    yandex_resourcemanager_folder_iam_member.storage-agent-editor,
+    yandex_storage_bucket.netology-diploma
+  ]
   bucket = yandex_storage_bucket.netology-diploma.bucket
   key = "cat.jpg"
   content_type = "image/jpeg"
