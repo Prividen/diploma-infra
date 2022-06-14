@@ -16,7 +16,7 @@ output "container_registry" {
 }
 
 output "master_nodes" {
-    value = yandex_compute_instance.kube_control_plane.*.network_interface.0.nat_ip_address
+  value = yandex_compute_instance.kube_control_plane.*.network_interface.0.nat_ip_address
 }
 
 output "worker_nodes" {
@@ -25,12 +25,12 @@ output "worker_nodes" {
 
 output "access_urls" {
   value = {
-    Control = "${local.control_url}"
-    Ingress =  "${local.ingress_url}"
+    Control   = "${local.control_url}"
+    Ingress   = "${local.ingress_url}"
     Dashboard = "${local.cluster_name}-dashboard.${local.dns_zone}"
-    Grafana = "grafana.${local.dns_zone}"
+    Grafana   = "grafana.${local.dns_zone}"
     Testapp = {
-      prod = "http://testapp.${local.dns_zone}"
+      prod  = "http://testapp.${local.dns_zone}"
       stage = "http://testapp-stage.${local.dns_zone}"
     }
   }
@@ -42,24 +42,24 @@ output "picture_url" {
 
 output "k8s_registry_agent_key" {
   value = {
-    id = yandex_iam_service_account_key.k8s-registry-agent-key.id
+    id                 = yandex_iam_service_account_key.k8s-registry-agent-key.id
     service_account_id = yandex_iam_service_account_key.k8s-registry-agent-key.service_account_id
-    created_at = yandex_iam_service_account_key.k8s-registry-agent-key.created_at
-    key_algorithm = yandex_iam_service_account_key.k8s-registry-agent-key.key_algorithm
-    public_key = yandex_iam_service_account_key.k8s-registry-agent-key.public_key
-    private_key = yandex_iam_service_account_key.k8s-registry-agent-key.private_key
+    created_at         = yandex_iam_service_account_key.k8s-registry-agent-key.created_at
+    key_algorithm      = yandex_iam_service_account_key.k8s-registry-agent-key.key_algorithm
+    public_key         = yandex_iam_service_account_key.k8s-registry-agent-key.public_key
+    private_key        = yandex_iam_service_account_key.k8s-registry-agent-key.private_key
   }
   sensitive = true
 }
 
 output "docker_registry_agent_key" {
   value = {
-    id = yandex_iam_service_account_key.docker-registry-agent-key.id
+    id                 = yandex_iam_service_account_key.docker-registry-agent-key.id
     service_account_id = yandex_iam_service_account_key.docker-registry-agent-key.service_account_id
-    created_at = yandex_iam_service_account_key.docker-registry-agent-key.created_at
-    key_algorithm = yandex_iam_service_account_key.docker-registry-agent-key.key_algorithm
-    public_key = yandex_iam_service_account_key.docker-registry-agent-key.public_key
-    private_key = yandex_iam_service_account_key.docker-registry-agent-key.private_key
+    created_at         = yandex_iam_service_account_key.docker-registry-agent-key.created_at
+    key_algorithm      = yandex_iam_service_account_key.docker-registry-agent-key.key_algorithm
+    public_key         = yandex_iam_service_account_key.docker-registry-agent-key.public_key
+    private_key        = yandex_iam_service_account_key.docker-registry-agent-key.private_key
   }
   sensitive = true
 }
